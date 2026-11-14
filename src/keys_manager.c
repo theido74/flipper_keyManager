@@ -108,6 +108,59 @@ static void load_and_show_vault(KeysManagerApp* app) {
 }
 
 // ---------------------------------------------------------------------------
+// Keyboard-layout chooser
+// ---------------------------------------------------------------------------
+
+static bool ends_with_kl(const char* name) {
+    size_t n = strlen(name);
+    return n > 3 && strcmp(name + n - 3, ".kl") == 0;
+}
+
+// Scan HID_LAYOUTS_DIR for *.kl files, storing absolute paths in app->layout_paths.
+static void scan_layout_files(KeysManagerApp* app) {
+    app->layout_count = 0;
+    File* dir = storage_file_alloc(app->storage);
+
+    if(storage_dir_open(dir, HID_LAYOUTS_DIR)) {
+        FileInfo info;
+        char name[128];
+        while(app->layout_count < FKM_MAX_LAYOUTS &&
+              storage_dir_read(dir, &info, name, sizeof(name))) {
+            if((info.flags & FSF_DIRECTORY) || !ends_with_kl(name)) continue;
+
+            size_t len = strlen(HID_LAYOUTS_DIR) + 1 + strlen(name) + 1;
+            char* full = malloc(len);
+            if(full) {
+                snprintf(full, len, "%s/%s", HID_LAYOUTS_DIR, name);
+                app->layout_paths[app->layout_count++] = full;
+            }
+        }
+    } else {
+        FURI_LOG_I(FKM_TAG, "no layouts dir (%s); US only", HID_LAYOUTS_DIR);
+    }
+
+    storage_dir_close(dir);
+    storage_file_free(dir);
+}
+
+// index 0 = built-in US; 1.. = app->layout_paths[index-1]
+static void layout_menu_select_callback(void* context, uint32_t index) {
+    KeysManagerApp* app = context;
+
+    if(index == 0) {
+        hid_layout_load_us(app->layout);
+    } else {
+        const char* path = app->layout_paths[index - 1];
+        if(!hid_layout_load_file(app->storage, path, app->layout)) {
+            hid_layout_load_us(app->layout); // fall back if the file is bad
+            FURI_LOG_W(FKM_TAG, "layout load failed, using US");
+        }
+    }
+
+    view_dispatcher_switch_to_view(app->view_dispatcher, FkmViewPassphrase);
+}
+
+// ---------------------------------------------------------------------------
 // Callbacks
 // ---------------------------------------------------------------------------
 
@@ -123,7 +176,7 @@ static void submenu_select_callback(void* context, uint32_t index) {
     const VaultEntry* entry = &app->vault->entries[index];
 
     keys_manager_show_status(app, entry->domain, "Typing over USB...");
-    bool ok = hid_type_string(entry->password, /*press_enter_after=*/false);
+    bool ok = hid_type_string(app->layout, entry->password, /*press_enter_after=*/false);
 
     keys_manager_show_status(
         app, entry->domain, ok ? "Typed." : "USB host\nnot ready");
@@ -138,7 +191,11 @@ static bool navigation_callback(void* context) {
         view_dispatcher_switch_to_view(app->view_dispatcher, FkmViewList);
         return true; // handled
     }
-    // From the list or the passphrase screen, Back exits the app.
+    if(current == FkmViewPassphrase) {
+        view_dispatcher_switch_to_view(app->view_dispatcher, FkmViewLayout);
+        return true;
+    }
+    // From the layout chooser, the list, or an error status, Back exits.
     view_dispatcher_stop(app->view_dispatcher);
     return true;
 }
@@ -170,8 +227,28 @@ static KeysManagerApp* keys_manager_app_alloc(void) {
         /*clear_default_text=*/true);
 
     app->submenu = submenu_alloc();
+    app->layout_menu = submenu_alloc();
     app->widget = widget_alloc();
 
+    // Default layout until the user picks one.
+    hid_layout_load_us(app->layout);
+
+    // Build the layout chooser: built-in US + any .kl files on the SD card.
+    scan_layout_files(app);
+    submenu_set_header(app->layout_menu, "Host keyboard layout");
+    submenu_add_item(
+        app->layout_menu, "Built-in US (QWERTY)", 0, layout_menu_select_callback, app);
+    for(size_t i = 0; i < app->layout_count; i++) {
+        // Show the file name (after the last '/'), e.g. "ch-fr.kl".
+        const char* full = app->layout_paths[i];
+        const char* base = strrchr(full, '/');
+        base = base ? base + 1 : full;
+        submenu_add_item(
+            app->layout_menu, base, (uint32_t)(i + 1), layout_menu_select_callback, app);
+    }
+
+    view_dispatcher_add_view(
+        app->view_dispatcher, FkmViewLayout, submenu_get_view(app->layout_menu));
     view_dispatcher_add_view(
         app->view_dispatcher, FkmViewPassphrase, text_input_get_view(app->text_input));
     view_dispatcher_add_view(app->view_dispatcher, FkmViewList, submenu_get_view(app->submenu));
@@ -181,14 +258,20 @@ static KeysManagerApp* keys_manager_app_alloc(void) {
 }
 
 static void keys_manager_app_free(KeysManagerApp* app) {
+    view_dispatcher_remove_view(app->view_dispatcher, FkmViewLayout);
     view_dispatcher_remove_view(app->view_dispatcher, FkmViewPassphrase);
     view_dispatcher_remove_view(app->view_dispatcher, FkmViewList);
     view_dispatcher_remove_view(app->view_dispatcher, FkmViewStatus);
 
     text_input_free(app->text_input);
     submenu_free(app->submenu);
+    submenu_free(app->layout_menu);
     widget_free(app->widget);
     view_dispatcher_free(app->view_dispatcher);
+
+    for(size_t i = 0; i < app->layout_count; i++) {
+        free(app->layout_paths[i]);
+    }
 
     if(app->vault) vault_free(app->vault);
     memset(app->passphrase, 0, sizeof(app->passphrase));
@@ -203,7 +286,7 @@ int32_t keys_manager_app(void* p) {
     UNUSED(p);
     KeysManagerApp* app = keys_manager_app_alloc();
 
-    view_dispatcher_switch_to_view(app->view_dispatcher, FkmViewPassphrase);
+    view_dispatcher_switch_to_view(app->view_dispatcher, FkmViewLayout);
     view_dispatcher_run(app->view_dispatcher);
 
     keys_manager_app_free(app);

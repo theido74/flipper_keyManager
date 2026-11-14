@@ -52,10 +52,19 @@ domain:password
 mail.ch:pa:ss:word   # -> domain "mail.ch", password "pa:ss:word"
 ```
 
+## Keyboard layout
+
+HID sends scancodes, so the characters that appear depend on the **host's**
+keyboard layout. At launch the app lets you pick: built-in US, or any `.kl`
+layout file under `/ext/badusb/assets/layouts` on the SD card (e.g. `ch-fr.kl`,
+`fr-fr.kl`). If you don't have those, install any BadUSB layout pack, or grab
+the `.kl` files from the Flipper layouts repo and drop them in that folder.
+
 ## Honest limitations
 
-- **Keyboard layout:** US QWERTY only for now. On a Swiss/French host, symbols
-  will mistype. See roadmap item #1 in `CLAUDE.md`.
+- **Layout files:** the chooser is only as good as the `.kl` files present;
+  without them you get US only. The choice isn't remembered between launches
+  yet. See roadmap item #1 in `CLAUDE.md`.
 - **No integrity check (MAC):** a wrong passphrase yields garbage rather than a
   clean "wrong password" error. Roadmap #2.
 - **KDF is a stopgap** (iterated SHA-256), not PBKDF2/scrypt. Roadmap #3.

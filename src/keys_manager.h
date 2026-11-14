@@ -3,7 +3,7 @@
 // Fliiper Keys — application-wide types.
 //
 // Flow:
-//   TextInput (passphrase)  ->  Submenu (domains)  ->  Widget (status)
+//   Submenu (layout) -> TextInput (passphrase) -> Submenu (domains) -> Widget (status)
 // The vault file lives on the SD card at APP_DATA_PATH("vault.fkm"),
 // is AES-256-CTR encrypted, and is decrypted in RAM only after the
 // passphrase is entered. Selecting a domain types its password over
@@ -17,14 +17,19 @@
 #include <storage/storage.h>
 
 #include "vault.h"
+#include "hid_layout.h"
 
 #define FKM_TAG "FliiperKeys"
 
 // Max passphrase length the text input will accept.
 #define FKM_PASSPHRASE_MAX 64
 
+// Max number of .kl layout files listed in the chooser.
+#define FKM_MAX_LAYOUTS 32
+
 // View identifiers for the ViewDispatcher.
 typedef enum {
+    FkmViewLayout, // submenu: pick the host keyboard layout
     FkmViewPassphrase, // text input
     FkmViewList, // submenu of domains
     FkmViewStatus, // widget: result / errors
@@ -36,8 +41,16 @@ typedef struct {
     Storage* storage;
 
     TextInput* text_input;
-    Submenu* submenu;
+    Submenu* submenu; // domain list
+    Submenu* layout_menu; // keyboard-layout chooser
     Widget* widget;
+
+    // Chosen ASCII->HID layout used when typing. Defaults to US.
+    uint16_t layout[HID_LAYOUT_SIZE];
+
+    // Absolute paths of discovered .kl layout files (NULL-padded).
+    char* layout_paths[FKM_MAX_LAYOUTS];
+    size_t layout_count;
 
     // Passphrase buffer, zeroed as soon as the key is derived.
     char passphrase[FKM_PASSPHRASE_MAX + 1];

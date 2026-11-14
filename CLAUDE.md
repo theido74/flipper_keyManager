@@ -8,6 +8,8 @@ This file is read automatically by Claude Code. Keep it accurate.
 
 ## What this app does (and doesn't)
 
+- At launch, asks which **host keyboard layout** to type with (built-in US, or
+  any `.kl` file found under `/ext/badusb/assets/layouts`).
 - Reads `/ext/apps_data/fliiper_keys/vault.fkm` (AES-256-CTR encrypted).
 - Prompts for a passphrase, derives the key, decrypts in RAM.
 - Lists **domains only**. Passwords are never shown on screen.
@@ -52,7 +54,8 @@ src/
   keys_manager.{c,h}     app lifecycle, views, navigation, vault loading
   vault.{c,h}            parse "domain:password" plaintext -> entries
   crypto.{c,h}           KDF + AES-256-CTR file decryption; file format
-  hid_typer.{c,h}        ASCII->HID scancode table, USB HID typing
+  hid_layout.{c,h}       ASCII->HID layout table: built-in US + .kl loader
+  hid_typer.{c,h}        USB HID typing, driven by a layout table
   vendor/                fetched: aes.{c,h} (tiny-AES), sha256.{c,h} (B-Con)
 tools/
   fkm_vault.py           host-side encrypt/decrypt (MUST match crypto.c)
@@ -74,9 +77,10 @@ icons/                   10x10 1-bit app icon
 
 ## Known limitations / roadmap (good first tasks)
 
-1. **Keyboard layout.** `hid_typer.c` is US QWERTY only. A Swiss (QWERTZ) /
-   French (AZERTY) host will mistype symbols. Add layout tables, ideally by
-   loading Flipper BadUSB `.kl` layout files; add a settings view to choose.
+1. **Keyboard layout.** (Partly done.) The app loads Flipper BadUSB `.kl`
+   layout files and lets you pick one at launch, with built-in US fallback.
+   Remaining: remember the last choice (config file) to skip the chooser; add
+   a few layouts to the repo so it works without BadUSB assets installed.
 2. **No integrity (MAC).** Add HMAC-SHA256 over `iv || ciphertext` so a wrong
    passphrase (or tampering) fails loudly instead of yielding garbage. Update
    both crypto.c and fkm_vault.py.

@@ -1,17 +1,18 @@
 #pragma once
 
+#include "hid_layout.h"
 #include <stdbool.h>
 
-// Switches the USB stack to HID keyboard, "types" `text` keystroke by
-// keystroke on the host, then restores the previous USB config.
+// Switches the USB stack to HID keyboard, "types" `text` on the host using
+// `layout` (an ASCII->HID table from hid_layout.{c,h}), then restores the
+// previous USB config.
 //
-// IMPORTANT — keyboard layout:
-//   HID sends *scancodes*, not characters. The character that actually
-//   appears depends on the layout selected ON THE HOST (the PC), not on
-//   the Flipper. The table in hid_typer.c is US QWERTY. On a Swiss
-//   (QWERTZ) or French (AZERTY) host, symbols and some letters will come
-//   out wrong until you add the matching layout. See the TODO there.
+// HID sends scancodes, so what actually appears on screen depends on `layout`
+// matching the HOST keyboard layout. Pick the right one at startup.
 //
-// Returns false if the USB HID interface never became ready (e.g. not
-// plugged into a host, or the host ignored the device).
-bool hid_type_string(const char* text, bool press_enter_after);
+// Returns false if the USB HID interface never became ready (e.g. not plugged
+// into a host, or the host ignored the device).
+bool hid_type_string(
+    const uint16_t layout[HID_LAYOUT_SIZE],
+    const char* text,
+    bool press_enter_after);
