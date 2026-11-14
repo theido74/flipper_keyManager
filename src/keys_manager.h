@@ -3,7 +3,7 @@
 // Fliiper Keys — application-wide types.
 //
 // Flow:
-//   Submenu (layout) -> TextInput (passphrase) -> Submenu (domains) -> Widget (status)
+//   UiList (layout) -> TextInput (passphrase) -> UiList (domains) -> Widget (status)
 // The vault file lives on the SD card at APP_DATA_PATH("vault.fkm"),
 // is AES-256-CTR encrypted, and is decrypted in RAM only after the
 // passphrase is entered. Selecting a domain types its password over
@@ -12,12 +12,12 @@
 #include <gui/gui.h>
 #include <gui/view_dispatcher.h>
 #include <gui/modules/text_input.h>
-#include <gui/modules/submenu.h>
 #include <gui/modules/widget.h>
 #include <storage/storage.h>
 
 #include "vault.h"
 #include "hid_layout.h"
+#include "ui_list.h"
 
 #define FKM_TAG "FliiperKeys"
 
@@ -41,8 +41,8 @@ typedef struct {
     Storage* storage;
 
     TextInput* text_input;
-    Submenu* submenu; // domain list
-    Submenu* layout_menu; // keyboard-layout chooser
+    UiList* list; // animated domain list
+    UiList* layout_menu; // animated keyboard-layout chooser
     Widget* widget;
 
     // Chosen ASCII->HID layout used when typing. Defaults to US.

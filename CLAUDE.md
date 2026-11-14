@@ -12,8 +12,13 @@ This file is read automatically by Claude Code. Keep it accurate.
   any `.kl` file found under `/ext/badusb/assets/layouts`).
 - Reads `/ext/apps_data/fliiper_keys/vault.fkm` (AES-256-CTR encrypted).
 - Prompts for a passphrase, derives the key, decrypts in RAM.
-- Lists **domains only**. Passwords are never shown on screen.
+- Lists **domains only**, in a custom animated view (`ui_list`): a styled
+  header bar, a highlight that slides between rows, a scrollbar, and a short
+  "ripple" animation when you press OK on an entry.
 - On select: switches USB to HID keyboard, types the password, restores USB.
+  The OK animation runs on a FuriTimer; when it ends, the list posts a
+  ViewDispatcher custom event (thread-safe) and the activation happens on the
+  GUI thread. Timer callbacks must never touch the GUI or type directly.
 - It does **not** "inject" into a field — HID has no concept of fields. It
   types scancodes; the focused field receives them. Put the cursor in the
   password box first.
@@ -52,6 +57,8 @@ shred -u accounts.txt        # destroy the plaintext
 application.fam          app manifest (entry point, icon, cdefines for tiny-AES)
 src/
   keys_manager.{c,h}     app lifecycle, views, navigation, vault loading
+  ui_list.{c,h}          custom animated list view (header, sliding
+                         highlight, scrollbar, OK-press ripple animation)
   vault.{c,h}            parse "domain:password" plaintext -> entries
   crypto.{c,h}           KDF + AES-256-CTR file decryption; file format
   hid_layout.{c,h}       ASCII->HID layout table: built-in US + .kl loader
