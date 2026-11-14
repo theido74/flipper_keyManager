@@ -1,0 +1,26 @@
+# Build output
+dist/
+build/
+*.fap
+.ufbt/
+
+# Vendored deps are fetched, not committed (run tools/fetch_deps.sh)
+src/vendor/aes.*
+src/vendor/sha256.*
+
+# NEVER commit secrets
+*.fkm
+accounts.txt
+accounts*.txt
+vault*.txt
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Editor / OS
+.DS_Store
+*.swp
+.idea/
+.vscode/

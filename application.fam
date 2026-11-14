@@ -1,0 +1,23 @@
+# Flipper application manifest (ufbt / fbt).
+# Docs: https://developer.flipper.net/flipperzero/doxygen/app_manifests.html
+
+App(
+    appid="fliiper_keys",
+    name="Fliiper Keys",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="keys_manager_app",
+    stack_size=4 * 1024,
+    fap_category="Tools",
+    fap_icon="icons/keys_10px.png",         # 10x10 px, 1-bit. See icons/README.md
+    fap_icon_assets="icons",
+    requires=[
+        "gui",
+        "dialogs",
+        "storage",
+    ],
+    # tiny-AES is compiled with AES-256 + CTR only.
+    cdefines=["AES256=1", "CTR=1", "ECB=0", "CBC=0"],
+    fap_author="you",
+    fap_version="0.1",
+    fap_description="USB HID password typer with an encrypted on-device vault.",
+)

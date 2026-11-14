@@ -1,0 +1,30 @@
+{
+  "//": "Project-scoped MCP servers for Claude Code. These are scaffolds: each needs its launcher (npx for Node, uvx for Python) available on PATH. Remove any you don't want. Docs: https://docs.claude.com/en/docs/claude-code/mcp",
+  "mcpServers": {
+    "filesystem": {
+      "//": "Read/browse this project tree. Scope it to the repo root.",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "."
+      ]
+    },
+    "fetch": {
+      "//": "Fetch web pages (e.g. developer.flipper.net API docs) as markdown.",
+      "command": "uvx",
+      "args": [
+        "mcp-server-fetch"
+      ]
+    },
+    "git": {
+      "//": "Inspect history/diffs/blame for this repo. Needs: uvx (from the 'uv' tool).",
+      "command": "uvx",
+      "args": [
+        "mcp-server-git",
+        "--repository",
+        "."
+      ]
+    }
+  }
+}
